@@ -1,0 +1,59 @@
+services:
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+    networks:
+      - mqtt
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    # mount config mới
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - mqtt
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - mqtt
+
+  telegraf:
+    image: telegraf:1.34.1
+    container_name: telegraf
+    command: ["telegraf", "--config", "/etc/telegraf/telegraf.conf"]
+    restart: on-failure
+    depends_on:
+      - mosquitto
+      - influxdb
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    networks:
+      - mqtt
+
+volumes:
+  influxdb-data:
+  mosquitto-data:
+  mosquitto-config:
+  grafana-data:
+
+networks:
+  mqtt:
+    driver: bridge
+
